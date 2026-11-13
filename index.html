@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+<meta name="theme-color" content="#05070C" />
+<meta name="color-scheme" content="dark" />
+<meta name="description" content="Rooftop Protocol — a five-act motion-controlled birthday game. Kolkata, a heavy box, one fuse, and the sky." />
+<title>The Jayho Chronicles · Rooftop Protocol</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="boot-locked">
+
+<canvas id="game" aria-label="Game world"></canvas>
+
+<!-- ============================ AMBIENT OVERLAYS (CSS, GPU only) ======== -->
+<div class="fx" aria-hidden="true">
+  <div class="fx-grain" id="fx-grain"></div>
+  <div class="fx-scan"></div>
+  <div class="fx-vignette"></div>
+  <div class="fx-thermal" id="fx-thermal" title="Thermal governor"></div>
+</div>
+
+<!-- ==================================== HUD ============================= -->
+<div id="hud" class="hud" aria-hidden="true">
+  <div class="hud-top">
+    <div class="hud-left">
+      <span class="hud-act" id="hud-act">ACT I</span>
+      <span class="hud-name" id="hud-name">The Run</span>
+    </div>
+    <div class="hud-right">
+      <span class="hud-score" id="hud-score">0</span>
+      <span class="hud-score-l">pts</span>
+    </div>
+  </div>
+
+  <div class="hud-bars">
+    <div class="bar bar--main">
+      <div class="bar-fill" id="bar-main"></div>
+      <span class="bar-label" id="bar-main-label">DISTANCE</span>
+    </div>
+    <div class="bar bar--sub">
+      <div class="bar-fill" id="bar-sub"></div>
+      <span class="bar-label" id="bar-sub-label">GRIP</span>
+    </div>
+  </div>
+
+  <div class="hud-pips" id="hud-pips"></div>
+</div>
+
+<!-- ============================ PROMPT / DIALOGUE ======================= -->
+<div id="prompt" class="prompt" aria-live="polite">
+  <span class="prompt-key" id="prompt-key">SHAKE</span>
+  <span class="prompt-text" id="prompt-text">to sprint</span>
+</div>
+
+<!-- ============================ ACT CARD ================================ -->
+<div id="actcard" class="actcard">
+  <div class="actcard-inner">
+    <p class="actcard-kicker" id="actcard-kicker">ACT I</p>
+    <h2 class="actcard-title" id="actcard-title">The Run</h2>
+    <p class="actcard-sub" id="actcard-sub">Beliaghata Lane · 6:42 pm</p>
+  </div>
+</div>
+
+<!-- ============================ TOAST =================================== -->
+<div id="toast" class="toast" role="status"></div>
+
+<!-- ============================ BOOT / LOADING ========================== -->
+<div id="boot" class="screen boot">
+  <div class="boot-inner">
+    <div class="crest" data-crest></div>
+    <p class="boot-kicker">PROJECT APEX BDAY PRESENTS</p>
+    <h1 class="boot-title">Rooftop<br /><span class="grad">Protocol</span></h1>
+    <p class="boot-sub">a Jayho Chronicles story</p>
+    <div class="boot-bar"><div class="boot-fill" id="boot-fill"></div></div>
+    <p class="boot-status" id="boot-status">waking the city…</p>
+  </div>
+</div>
+
+<!-- ============================ TITLE =================================== -->
+<div id="title" class="screen title is-hidden">
+  <div class="title-inner">
+    <div class="crest crest--lg" data-crest></div>
+    <p class="title-kicker">THE JAYHO CHRONICLES</p>
+    <h1 class="title-h">Rooftop<br /><span class="grad">Protocol</span></h1>
+    <p class="title-sub">
+      Kolkata, 6:42 pm. A box nobody was supposed to carry.
+      One fuse. Five acts to get the sky to say his name.
+    </p>
+    <div class="title-btns">
+      <button class="btn btn--primary" id="btn-begin" type="button">
+        <span>Begin the Mission</span><i class="btn-glow" aria-hidden="true"></i>
+      </button>
+      <div class="title-row">
+        <button class="btn btn--ghost" id="btn-howto" type="button">How to play</button>
+        <button class="btn btn--ghost" id="btn-settings" type="button">Controls</button>
+        <button class="btn btn--ghost" id="btn-sound" type="button" aria-pressed="false">
+          <span id="sound-label">Sound on</span>
+        </button>
+      </div>
+    </div>
+    <p class="title-foot" id="title-foot">Best in portrait · headphones recommended</p>
+  </div>
+</div>
+
+<!-- ============================ HOW TO PLAY ============================= -->
+<div id="howto" class="screen modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="howto-h">
+  <div class="modal-card">
+    <h2 id="howto-h">Five acts, five hands</h2>
+    <ul class="howto-list">
+      <li><b>I · The Run</b><span>Shake the phone to sprint, tap to jump the potholes. Touch mode: hold to sprint.</span></li>
+      <li><b>II · The Climb</b><span>Tilt left and right to keep the box level. Touch mode: drag sideways.</span></li>
+      <li><b>III · The Setup</b><span>Trace the fuse with your finger, then tap the spark in the green window.</span></li>
+      <li><b>IV · The Launch</b><span>Hold to build pressure, release in the sweet spot, then tap at the apex.</span></li>
+      <li><b>V · The Sky</b><span>Draw the letters. Embers follow your finger and catch fire.</span></li>
+    </ul>
+    <p class="howto-note" id="howto-note">
+      <b>Gyro look:</b> once motion is allowed, tilting the phone also moves the
+      camera — near layers slide further than far ones, so the street has depth.
+      Sensitivity, invert-Y and recalibration live under <b>Controls</b>.
+      <br /><br />
+      Motion sensing needs HTTPS and your permission. If it is unavailable the game
+      switches to touch automatically — nothing is blocked.
+    </p>
+    <button class="btn btn--primary btn--sm" id="btn-howto-close" type="button">Got it</button>
+  </div>
+</div>
+
+
+<!-- ============================ CONTROL SETTINGS ======================== -->
+<div id="settings" class="screen modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="settings-h">
+  <div class="modal-card">
+    <h2 id="settings-h">Controls</h2>
+
+    <label class="row">
+      <span class="row-l">Gyro look<small>tilt the phone to look around</small></span>
+      <input type="checkbox" id="set-gyro" class="sw" />
+    </label>
+
+    <label class="row">
+      <span class="row-l">Sensitivity<small><b id="sens-val">1.0</b>&times;</small></span>
+      <input type="range" id="set-sens" min="0.2" max="3" step="0.1" value="1" />
+    </label>
+
+    <label class="row">
+      <span class="row-l">Invert vertical<small>for inverted-Y players</small></span>
+      <input type="checkbox" id="set-invert" class="sw" />
+    </label>
+
+    <label class="row">
+      <span class="row-l">Vibration<small>haptics on impact</small></span>
+      <input type="checkbox" id="set-haptics" class="sw" />
+    </label>
+
+    <div class="row row--stack">
+      <button class="btn btn--ghost" id="btn-recal" type="button">Recalibrate centre</button>
+      <p class="gyro-note" id="gyro-status">Hold the phone the way you like to play, then tap recalibrate.</p>
+    </div>
+
+    <button class="btn btn--primary btn--sm" id="btn-settings-close" type="button">Done</button>
+  </div>
+</div>
+
+<!-- ============================ FINALE ================================== -->
+<div id="finale" class="screen finale is-hidden">
+  <div class="finale-inner">
+    <p class="finale-kicker">THE SKY HAS SPOKEN</p>
+    <h1 class="finale-h"><span class="grad">Happy Birthday</span><br />Jayho</h1>
+    <p class="finale-sub" id="finale-sub">
+      Five acts, one fuse, and a whole lane of people who would do it again tomorrow.
+    </p>
+    <div class="finale-stats">
+      <div><b id="stat-score">0</b><span>points</span></div>
+      <div><b id="stat-time">0:00</b><span>on the roof</span></div>
+      <div><b id="stat-slip">0</b><span>near misses</span></div>
+    </div>
+    <div class="finale-btns">
+      <button class="btn btn--primary" id="btn-again" type="button">Play again</button>
+      <button class="btn btn--ghost" id="btn-share" type="button">Share</button>
+    </div>
+    <p class="finale-foot">Signed — Rahul, Amit &amp; Kabir</p>
+  </div>
+</div>
+
+<!-- ============================ ROTATE HINT ============================= -->
+<div id="rotate" class="rotate">
+  <div class="rotate-icon" aria-hidden="true"></div>
+  <p>Turn the phone upright.<br /><span>The terrace is tall.</span></p>
+</div>
+
+<noscript><div class="noscript">This mission needs JavaScript. Happy birthday, Jayho.</div></noscript>
+
+<script src="js/util.js" defer></script>
+<script src="js/thermal.js" defer></script>
+<script src="js/assets.js" defer></script>
+<script src="js/audio.js" defer></script>
+<script src="js/input.js" defer></script>
+<script src="js/gyro.js" defer></script>
+<script src="js/particles.js" defer></script>
+<script src="js/world.js" defer></script>
+<script src="js/hud.js" defer></script>
+<script src="js/acts.js" defer></script>
+<script src="js/main.js" defer></script>
+</body>
+</html>

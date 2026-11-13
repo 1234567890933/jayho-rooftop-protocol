@@ -1,0 +1,344 @@
+/* ============================================================================
+   ROOFTOP PROTOCOL — style.css
+   ----------------------------------------------------------------------------
+   RULES OF THE HOUSE
+   1. Only transform / opacity animate. Nothing here triggers layout.
+   2. No backdrop-filter, no large filter:blur(). Glass is layered gradients.
+   3. Every screen is a sibling of the canvas, so the canvas keeps 60fps even
+      while a modal is fading.
+   ========================================================================= */
+
+:root{
+  --ink:#05070C;
+  --ink-2:#0A0E16;
+  --panel:#0D1220;
+  --gold:#FFC96B;
+  --gold-hot:#FFE7A8;
+  --cyan:#22E1FF;
+  --magenta:#FF4FD8;
+  --ember:#FF6B35;
+  --mint:#50F0BE;
+  --ink-t:#EAF2FF;
+  --ink-s:#A9BAD0;
+  --ink-f:#6C7C93;
+  --grad:linear-gradient(100deg,#22E1FF 0%,#9BE8FF 30%,#FFC96B 68%,#FFE7A8 100%);
+  --font:"Space Grotesk","Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --ease:cubic-bezier(.16,1,.3,1);
+  --ease-2:cubic-bezier(.22,1,.36,1);
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --gut:clamp(16px,4.6vw,30px);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;padding:0;background:var(--ink);color:var(--ink-t);font-family:var(--font)}
+html{overflow:hidden;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+body{
+  position:fixed;inset:0;overflow:hidden;touch-action:none;
+  -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;
+  -webkit-font-smoothing:antialiased;
+}
+body.boot-locked{cursor:progress}
+h1,h2,h3,p,ul,li{margin:0;padding:0}
+ul{list-style:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+::selection{background:rgba(34,225,255,.3)}
+
+#game{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0;background:#05070C;contain:strict}
+
+/* ------------------------------------------------------------- FX LAYERS */
+.fx{position:fixed;inset:0;z-index:2;pointer-events:none;overflow:hidden}
+.fx-grain{
+  position:absolute;inset:-30%;
+  background-image:url("../assets/art/tex_grain.png");
+  background-size:220px 220px;opacity:.055;mix-blend-mode:overlay;
+  animation:grain 900ms steps(3) infinite;will-change:transform;
+}
+@keyframes grain{
+  0%{transform:translate3d(0,0,0)}33%{transform:translate3d(-1.5%,1%,0)}
+  66%{transform:translate3d(1%,-1.5%,0)}100%{transform:translate3d(0,0,0)}
+}
+.fx-scan{
+  position:absolute;inset:0;opacity:.14;
+  background-image:repeating-linear-gradient(to bottom,rgba(255,255,255,.05) 0 1px,transparent 1px 3px);
+  animation:scan 8s linear infinite;
+}
+@keyframes scan{from{transform:translate3d(0,0,0)}to{transform:translate3d(0,3px,0)}}
+.fx-vignette{
+  position:absolute;inset:0;
+  background:radial-gradient(118% 76% at 50% 44%,transparent 40%,rgba(3,5,9,.55) 78%,rgba(2,4,7,.92) 100%);
+}
+.fx-thermal{
+  position:absolute;top:calc(var(--safe-t) + 10px);right:10px;width:6px;height:6px;border-radius:50%;
+  background:var(--mint);opacity:.0;transition:opacity .4s,background .4s;box-shadow:0 0 10px currentColor;
+}
+.fx-thermal.is-on{opacity:.85}
+.fx-thermal.warm{background:var(--gold)}
+.fx-thermal.hot{background:var(--ember)}
+
+/* ---------------------------------------------------------------- HUD */
+.hud{
+  position:fixed;left:0;right:0;top:0;z-index:6;
+  padding:calc(var(--safe-t) + 12px) var(--gut) 0;
+  opacity:0;transform:translate3d(0,-12px,0);
+  transition:opacity .5s var(--ease),transform .5s var(--ease);
+  pointer-events:none;
+}
+.hud.is-on{opacity:1;transform:none}
+.hud-top{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.hud-left{display:flex;flex-direction:column;gap:2px}
+.hud-act{font:600 9px/1 var(--mono);letter-spacing:.28em;color:var(--cyan);opacity:.9}
+.hud-name{font:700 15px/1.1 var(--font);letter-spacing:-.01em;color:#F2F7FF}
+.hud-right{display:flex;align-items:baseline;gap:4px}
+.hud-score{font:700 18px/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--gold)}
+.hud-score-l{font:600 8px/1 var(--mono);letter-spacing:.2em;color:var(--ink-f);text-transform:uppercase}
+
+.hud-bars{margin-top:14px;display:flex;flex-direction:column;gap:10px}
+.bar{position:relative;height:4px;border-radius:4px;background:rgba(255,255,255,.09);overflow:hidden}
+.bar-fill{position:absolute;inset:0 auto 0 0;width:0;background:var(--grad);box-shadow:0 0 14px rgba(34,225,255,.55);transition:width .18s linear}
+.bar--sub{height:3px;background:rgba(255,255,255,.06)}
+.bar--sub .bar-fill{background:linear-gradient(90deg,#FF6B35,#FFC96B);box-shadow:0 0 12px rgba(255,107,53,.5)}
+.bar-label{
+  position:absolute;right:0;top:-12px;font:600 7.5px/1 var(--mono);
+  letter-spacing:.24em;color:var(--ink-f);text-transform:uppercase;
+}
+.hud-pips{display:flex;gap:5px;margin-top:9px;justify-content:flex-end}
+.pip{width:14px;height:3px;border-radius:2px;background:rgba(255,255,255,.16);transition:background .3s,box-shadow .3s}
+.pip.on{background:var(--gold);box-shadow:0 0 10px rgba(255,201,107,.8)}
+
+/* ------------------------------------------------------------- PROMPT */
+.prompt{
+  position:fixed;left:50%;bottom:calc(var(--safe-b) + 26px);z-index:7;
+  display:flex;align-items:center;gap:10px;
+  padding:9px 16px 9px 9px;border-radius:999px;
+  background:linear-gradient(120deg,rgba(34,225,255,.14),rgba(13,18,32,.86));
+  border:1px solid rgba(34,225,255,.28);
+  box-shadow:0 12px 34px -18px #000,inset 0 1px 0 rgba(255,255,255,.08);
+  transform:translate3d(-50%,18px,0);opacity:0;
+  transition:opacity .35s var(--ease),transform .35s var(--ease);
+  pointer-events:none;max-width:calc(100vw - 32px);
+}
+.prompt.is-on{opacity:1;transform:translate3d(-50%,0,0)}
+.prompt-key{
+  flex:0 0 auto;padding:5px 9px;border-radius:999px;
+  background:var(--grad);color:#06121A;font:700 9px/1 var(--mono);
+  letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;
+  animation:keypulse 1.8s var(--ease) infinite;
+}
+@keyframes keypulse{0%,100%{box-shadow:0 0 0 rgba(34,225,255,0)}50%{box-shadow:0 0 18px rgba(34,225,255,.7)}}
+.prompt-text{font:500 12px/1.3 var(--font);color:var(--ink-s);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ------------------------------------------------------------ ACT CARD */
+.actcard{
+  position:fixed;inset:0;z-index:9;display:grid;place-items:center;
+  pointer-events:none;opacity:0;visibility:hidden;
+  background-size:cover;background-position:center;background-repeat:no-repeat;
+  background-color:#05070C;
+}
+.actcard::after{
+  /* scrim so the words always sit on something calm */
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(80% 60% at 50% 50%,rgba(4,6,10,.35),rgba(4,6,10,.88));
+  pointer-events:none;
+}
+.actcard-inner{position:relative;z-index:1}
+.actcard.is-on{opacity:1;visibility:visible}
+.actcard-inner{
+  text-align:center;padding:0 var(--gut);
+  transform:translate3d(0,26px,0);opacity:0;
+  transition:transform .9s var(--ease),opacity .9s var(--ease);
+}
+.actcard.is-on .actcard-inner{transform:none;opacity:1}
+.actcard-kicker{
+  font:600 10px/1 var(--mono);letter-spacing:.42em;color:var(--cyan);
+  margin-bottom:14px;text-transform:uppercase;
+}
+.actcard-title{
+  font:800 clamp(34px,12vw,64px)/.95 var(--font);letter-spacing:-.04em;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;color:transparent;
+}
+.actcard-sub{margin-top:14px;font:500 12px/1.5 var(--mono);letter-spacing:.16em;color:var(--ink-f);text-transform:uppercase}
+
+/* --------------------------------------------------------------- TOAST */
+.toast{
+  position:fixed;left:50%;bottom:calc(var(--safe-b) + 84px);z-index:10;
+  transform:translate3d(-50%,14px,0);opacity:0;
+  padding:10px 18px;border-radius:12px;max-width:min(86vw,420px);text-align:center;
+  background:rgba(10,14,22,.94);border:1px solid rgba(255,201,107,.3);
+  color:var(--ink-t);font:500 12.5px/1.45 var(--font);
+  box-shadow:0 18px 40px -20px #000;
+  transition:opacity .3s var(--ease),transform .3s var(--ease);pointer-events:none;
+}
+.toast.is-on{opacity:1;transform:translate3d(-50%,0,0)}
+
+/* ------------------------------------------------------------- SCREENS */
+.screen{
+  position:fixed;inset:0;z-index:12;display:grid;place-items:center;
+  padding:calc(var(--safe-t) + 24px) var(--gut) calc(var(--safe-b) + 24px);
+  /* visibility must NOT be in the transition list: a discrete transition on
+     visibility can stall a screen at hidden forever when the compositor is
+     busy, which is exactly how the title screen once failed to appear.
+     Instead it flips instantly on show and after the fade on hide. */
+  transition:opacity .6s var(--ease),transform .7s var(--ease),visibility 0s;
+}
+.screen.is-hidden{
+  opacity:0;visibility:hidden;pointer-events:none;transform:scale(1.03);
+  transition:opacity .6s var(--ease),transform .7s var(--ease),visibility 0s .6s;
+}
+
+/* ---- boot ---- */
+.boot{
+  background-image:
+    radial-gradient(120% 80% at 50% 6%,rgba(17,26,42,.92) 0%,rgba(7,10,17,.97) 58%,#04060A 100%),
+    url("../assets/art/title_bg.png");
+  background-size:cover,cover;background-position:center,center bottom;
+  z-index:20;
+}
+.boot-inner{text-align:center;max-width:420px}
+.crest{width:82px;height:82px;margin:0 auto 18px;color:var(--gold);filter:drop-shadow(0 0 22px rgba(255,201,107,.4))}
+.crest--lg{width:104px;height:104px}
+.crest svg{width:100%;height:100%;display:block}
+.boot-kicker{font:600 8.5px/1 var(--mono);letter-spacing:.42em;color:var(--ink-f);margin-bottom:14px}
+.boot-title{font:800 clamp(34px,11vw,58px)/.92 var(--font);letter-spacing:-.04em}
+.boot-sub{margin-top:12px;font:500 10px/1 var(--mono);letter-spacing:.3em;color:var(--ink-f);text-transform:uppercase}
+.boot-bar{position:relative;height:3px;margin:34px auto 12px;width:min(280px,72vw);border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden}
+.boot-fill{position:absolute;inset:0 auto 0 0;width:0;background:var(--grad);transition:width .3s linear;box-shadow:0 0 16px rgba(34,225,255,.7)}
+.boot-status{font:500 10px/1.4 var(--mono);letter-spacing:.18em;color:var(--ink-f);text-transform:uppercase}
+
+/* ---- title ---- */
+.title{
+  background-image:
+    radial-gradient(120% 70% at 50% 10%,rgba(14,22,38,.48),rgba(4,6,10,.90) 70%),
+    url("../assets/art/title_bg.png");
+  background-size:cover,cover;
+  background-position:center,center bottom;
+  background-repeat:no-repeat,no-repeat;
+}
+.title-inner{text-align:center;max-width:520px}
+.title-kicker{font:600 9px/1 var(--mono);letter-spacing:.4em;color:var(--ink-s);margin-bottom:14px}
+.title-h{font:800 clamp(40px,13vw,72px)/.9 var(--font);letter-spacing:-.045em;color:#F5F9FF}
+.title-sub{margin:18px auto 0;max-width:40ch;font:400 13.5px/1.66 var(--font);color:var(--ink-s)}
+.title-btns{margin-top:28px;display:flex;flex-direction:column;gap:12px;align-items:center}
+.title-row{display:flex;gap:10px}
+.title-foot{margin-top:20px;font:500 9px/1 var(--mono);letter-spacing:.2em;color:var(--ink-f);text-transform:uppercase}
+
+/* ---- buttons ---- */
+.btn{
+  position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border-radius:999px;font:600 14px/1 var(--font);padding:15px 30px;overflow:hidden;isolation:isolate;
+  transition:transform .2s var(--ease),box-shadow .3s,opacity .3s,border-color .3s;will-change:transform;
+}
+.btn:active{transform:scale(.97)}
+.btn--primary{
+  color:#06121A;background:var(--grad);
+  box-shadow:0 0 0 1px rgba(255,255,255,.16) inset,0 16px 40px -16px rgba(34,225,255,.7),0 0 60px -20px rgba(255,201,107,.5);
+}
+.btn--sm{padding:11px 22px;font-size:12.5px}
+.btn-glow{position:absolute;inset:-40%;background:radial-gradient(circle,rgba(255,255,255,.6),transparent 62%);opacity:0;transform:scale(.6);transition:opacity .4s,transform .6s var(--ease);z-index:-1}
+.btn--primary:active .btn-glow{opacity:.5;transform:scale(1)}
+.btn--ghost{
+  padding:11px 18px;font-size:11.5px;letter-spacing:.06em;color:var(--ink-s);
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07);
+}
+.btn--ghost:active{border-color:rgba(34,225,255,.5);color:var(--ink-t)}
+
+/* ---- modal ---- */
+.modal{background:rgba(3,5,9,.82);z-index:16}
+.modal-card{
+  width:min(460px,92vw);max-height:82vh;overflow:auto;
+  padding:26px 22px;border-radius:20px;
+  background:linear-gradient(160deg,rgba(34,225,255,.10),rgba(13,18,32,.96) 46%,rgba(8,11,18,.98));
+  border:1px solid rgba(34,225,255,.2);
+  box-shadow:0 30px 70px -30px #000,inset 0 1px 0 rgba(255,255,255,.08);
+  text-align:left;
+}
+.modal-card h2{font:700 20px/1.2 var(--font);letter-spacing:-.02em;margin-bottom:16px}
+.howto-list{display:flex;flex-direction:column;gap:12px;margin-bottom:16px}
+.howto-list li{display:flex;flex-direction:column;gap:3px;padding-left:12px;border-left:2px solid rgba(34,225,255,.35)}
+.howto-list b{font:700 12px/1.2 var(--font);color:var(--gold)}
+.howto-list span{font:400 12px/1.55 var(--font);color:var(--ink-s)}
+.howto-note{font:400 11px/1.6 var(--font);color:var(--ink-f);margin-bottom:18px}
+#btn-howto-close{width:100%}
+
+/* ---- control settings rows ---- */
+.row{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:13px 0;border-bottom:1px solid rgba(255,255,255,.07);
+}
+.row--stack{flex-direction:column;align-items:stretch;gap:10px;border-bottom:0}
+.row-l{display:flex;flex-direction:column;gap:3px;font:600 13px/1.2 var(--font);color:var(--ink-t)}
+.row-l small{font:400 10.5px/1.3 var(--font);color:var(--ink-f)}
+.row-l b{color:var(--gold);font-family:var(--mono)}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:130px;height:4px;border-radius:4px;
+  background:linear-gradient(90deg,var(--cyan),var(--gold));outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:20px;height:20px;border-radius:50%;
+  background:#fff;box-shadow:0 0 14px rgba(34,225,255,.8);cursor:pointer;
+}
+input[type=range]::-moz-range-thumb{
+  width:18px;height:18px;border:0;border-radius:50%;background:#fff;
+  box-shadow:0 0 14px rgba(34,225,255,.8);cursor:pointer;
+}
+.sw{
+  -webkit-appearance:none;appearance:none;width:46px;height:26px;border-radius:99px;
+  background:rgba(255,255,255,.14);position:relative;transition:background .25s;cursor:pointer;flex:0 0 auto;
+}
+.sw::after{
+  content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;
+  background:#fff;transition:transform .25s var(--ease);
+}
+.sw:checked{background:linear-gradient(90deg,var(--cyan),var(--gold))}
+.sw:checked::after{transform:translateX(20px)}
+.gyro-note{font:400 10.5px/1.5 var(--font);color:var(--ink-f);margin:0}
+#btn-settings-close{width:100%;margin-top:18px}
+
+/* ---- finale ---- */
+.finale{background:radial-gradient(120% 80% at 50% 18%,rgba(52,32,10,.90),rgba(4,6,10,.985) 66%);z-index:18}
+.finale-inner{text-align:center;max-width:520px}
+.finale-kicker{font:600 9px/1 var(--mono);letter-spacing:.42em;color:var(--gold);margin-bottom:16px}
+.finale-h{font:800 clamp(38px,12.5vw,68px)/.92 var(--font);letter-spacing:-.04em;color:#FFF6E4}
+.finale-sub{margin:16px auto 0;max-width:38ch;font:400 13px/1.65 var(--font);color:var(--ink-s)}
+.finale-stats{display:flex;justify-content:center;gap:clamp(18px,7vw,44px);margin:26px 0 24px}
+.finale-stats div{display:flex;flex-direction:column;gap:4px}
+.finale-stats b{font:700 22px/1 var(--mono);color:var(--gold-hot);font-variant-numeric:tabular-nums}
+.finale-stats span{font:600 8px/1 var(--mono);letter-spacing:.2em;color:var(--ink-f);text-transform:uppercase}
+.finale-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.finale-foot{margin-top:22px;font:500 9.5px/1 var(--mono);letter-spacing:.24em;color:var(--ink-f);text-transform:uppercase}
+
+/* ---- rotate hint ---- */
+.rotate{
+  position:fixed;inset:0;z-index:30;display:none;place-items:center;text-align:center;
+  background:rgba(4,6,10,.96);padding:24px;
+}
+.rotate p{font:500 14px/1.7 var(--font);color:var(--ink-s)}
+.rotate p span{color:var(--ink-f);font-size:12px}
+.rotate-icon{
+  width:52px;height:52px;margin:0 auto 18px;border-radius:10px;
+  border:2px solid var(--gold);animation:rot 2.4s var(--ease) infinite;
+}
+@keyframes rot{0%,40%{transform:rotate(0)}60%,100%{transform:rotate(90deg)}}
+
+@media (orientation:landscape) and (max-height:520px){
+  .rotate{display:grid}
+}
+
+.grad{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+
+.noscript{position:fixed;inset:0;z-index:99;display:grid;place-items:center;padding:24px;text-align:center;background:var(--ink);color:var(--ink-s)}
+
+/* ------------------------------------------------- accessibility & tiers */
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+}
+@media (forced-colors:active){
+  .grad,.actcard-title,.boot-title{ -webkit-text-fill-color:CanvasText;color:CanvasText;background:none }
+}
+/* quality tier: the thermal governor adds .tier-low to <html> */
+html.tier-low .fx-grain{display:none}
+html.tier-low .fx-scan{opacity:.08}
+html.tier-low .bar-fill{transition:none}

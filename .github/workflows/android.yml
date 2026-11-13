@@ -1,0 +1,77 @@
+name: Build Rooftop Protocol APK
+
+# Bakes the assets from the generators, compiles the APK with the Android
+# build-tools (no Gradle), signs it, and publishes it as a GitHub Release so
+# there is a single permanent download URL.
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Asset profile: standard (~155 MB) or max (~400 MB)"
+        required: false
+        default: max
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Python imaging deps
+        run: pip install --quiet numpy pillow
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install platform + build tools
+        run: |
+          sdkmanager --install "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+
+      - name: Bake assets
+        run: |
+          chmod +x tools/make_assets.sh android/tools/build_apk.sh
+          tools/make_assets.sh "${{ github.event.inputs.profile || 'max' }}"
+
+      - name: Build and sign the APK
+        run: android/tools/build_apk.sh
+
+      - name: Name the artifact
+        run: |
+          mkdir -p dist
+          cp android/build/RooftopProtocol.apk "dist/RooftopProtocol-${GITHUB_SHA::7}.apk"
+          ls -lh dist
+
+      - name: Upload as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RooftopProtocol-apk
+          path: dist/*.apk
+          if-no-files-found: error
+
+      - name: Publish a release with a permanent download URL
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.1.${{ github.run_number }}
+          name: Rooftop Protocol 1.1.${{ github.run_number }}
+          body: |
+            Motion-controlled five-act birthday game for Jayho.
+            Install: copy the APK to the phone, tap it, allow install from this source.
+          files: dist/*.apk
