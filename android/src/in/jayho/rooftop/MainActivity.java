@@ -15,6 +15,8 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+
+import com.jayho.rooftop.NativeBridge;
 import android.webkit.WebViewClient;
 
 import java.io.IOException;
@@ -45,6 +47,7 @@ public class MainActivity extends Activity {
     private static final String START_URL = ORIGIN + "/assets/www/index.html";
 
     private WebView web;
+    private NativeBridge bridge;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -56,6 +59,10 @@ public class MainActivity extends Activity {
 
         web = new WebView(this);
         web.setBackgroundColor(Color.parseColor("#05070C"));
+
+        /* the Kotlin + C++ side: vibration, native turbulence, preferences */
+        bridge = new NativeBridge(this);
+        web.addJavascriptInterface(bridge, "AndroidBridge");
 
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);

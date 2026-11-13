@@ -115,6 +115,7 @@
     this.bindResize();
     this.bindPlatform();
     this.bindSettings();
+    this.bindNative();
 
     /* wire the sensor stream into the aim engine once */
     var self = this;
@@ -125,9 +126,63 @@
 
   /* -------------------------------------------------------------- haptics */
   Game.prototype.haptics = function (pattern) {
-    if (!navigator.vibrate || !this.prefs.haptics) return;
+    if (!this.prefs.haptics) return;
     if (this.thermal && this.thermal.tier === 0) return;   /* spare the motor on a hot phone */
+
+    /* The Kotlin bridge drives the vibrator directly, so we get amplitude
+       control and it works even when navigator.vibrate is unavailable. */
+    if (this.bridge) {
+      try {
+        if (typeof pattern === 'number') this.bridge.vibrate(pattern);
+        else this.bridge.vibratePattern(pattern.join(','), pattern.map(function () { return 160; }).join(','));
+        return;
+      } catch (e) { /* fall through to the web API */ }
+    }
+    if (!navigator.vibrate) return;
     try { navigator.vibrate(pattern); } catch (e) { /* unsupported */ }
+  };
+
+  /* ---------------------------------------------------- native bridge ----
+     window.AndroidBridge is injected by NativeBridge.kt. Everything here is
+     optional: the web build simply has no bridge and nothing changes. */
+  Game.prototype.bindNative = function () {
+    var b = window.AndroidBridge;
+    if (!b) return;
+
+    this.bridge = b;
+    try {
+      this.nativeInfo = b.nativeInfo();
+    } catch (e) { this.nativeInfo = 'unavailable'; }
+
+    /* start on an honest quality tier instead of discovering it by stuttering */
+    try {
+      var prof = String(b.deviceProfile()).split(',');
+      var tier = parseInt(prof[0], 10);
+      if (tier === 1 && this.thermal.tier === 2) this.thermal.setTier(1, 'device profile: ' + prof[4]);
+      this.device = { cores: prof[1], memMB: prof[2], model: prof[4] };
+    } catch (e) { /* ignore */ }
+
+    /* bake the wind field once with the C++ noise function */
+    if (this.nativeInfo && this.nativeInfo !== 'unavailable') {
+      try {
+        var n = 32, f = new Float32Array(n * n * 2);
+        for (var y = 0; y < n; y++) {
+          for (var x = 0; x < n; x++) {
+            var pair = String(b.turbulence(x * 34, y * 60, 0)).split(',');
+            var i = (y * n + x) * 2;
+            f[i] = parseFloat(pair[0]) || 0;
+            f[i + 1] = parseFloat(pair[1]) || 0;
+          }
+        }
+        this.particles.setField(f, n);
+      } catch (e) { /* keep the JS fallback */ }
+    }
+
+    /* mirror preferences into native storage, which survives cache clears */
+    try {
+      var stored = b.getPref('prefs', '');
+      if (stored && !U.store.get('prefs', null)) U.store.set('prefs', JSON.parse(stored));
+    } catch (e) { /* ignore */ }
   };
 
   /* ------------------------------------------------------------- lifecycle */
@@ -297,6 +352,9 @@
   /* ------------------------------------------------ platform glue & pausing */
   Game.prototype.savePrefs = function () {
     U.store.set('prefs', this.prefs);
+    if (this.bridge) {
+      try { this.bridge.setPref('prefs', JSON.stringify(this.prefs)); } catch (e) { /* ignore */ }
+    }
   };
 
   Game.prototype.applyPrefs = function () {

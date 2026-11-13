@@ -3,7 +3,7 @@
 # Bakes every asset in the game.
 #
 #   standard  ~155 MB   plates at 2048 px, compact music beds   (default)
-#   max       ~400 MB   plates at 2731 px (2.4x pixels), full-length music
+#   max       ~700 MB   plates at 4096 px (4x pixels), 6x music length
 #
 # The repository stores only the generators, so CI bakes whichever profile the
 # build asks for and nothing large is ever committed to git.
@@ -13,9 +13,9 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROFILE="${1:-standard}"
 
 if [ "$PROFILE" = "max" ]; then
-  export PLATE_W=3072
-  export MUSIC_LEN=3.0
-  echo "→ max profile: plates 3072 px, music 3.0x"
+  export PLATE_W=4096
+  export MUSIC_LEN=6.0
+  echo "→ max profile: plates 4096 px, music 6.0x"
 else
   export PLATE_W=2048
   export MUSIC_LEN=1

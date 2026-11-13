@@ -44,23 +44,74 @@ echo "→ linking"
   --version-name 1.1 \
   --auto-add-overlay
 
+# ---------------------------------------------------------------- Kotlin ---
+# The bridge is Kotlin, so the Kotlin stdlib has to be dexed in as well —
+# without it the app dies with NoClassDefFoundError on the first Kotlin call.
+KOTLINC="${KOTLINC:-}"
+if [ -z "$KOTLINC" ]; then
+  for c in "$HOME/kotlinc/bin/kotlinc" /opt/kotlinc/bin/kotlinc "$(command -v kotlinc || true)"; do
+    [ -x "$c" ] && KOTLINC="$c" && break
+  done
+fi
+if [ -n "$KOTLINC" ]; then
+  echo "→ compiling kotlin ($KOTLINC)"
+  mkdir -p "$OUT/ktclasses"
+  "$KOTLINC" -nowarn -jvm-target 1.8 -classpath "$AJ" -d "$OUT/ktclasses" \
+    $(find "$HERE/src/main/kotlin" -name '*.kt')
+  KOTLIN_STDLIB="$(dirname "$(dirname "$KOTLINC")")/lib/kotlin-stdlib.jar"
+else
+  echo "!! kotlinc not found — building without the Kotlin bridge"
+  KOTLIN_STDLIB=""
+fi
+
 echo "→ compiling java"
+KT_CP=""
+[ -d "$OUT/ktclasses" ] && KT_CP="$OUT/ktclasses"
+
 javac -source 8 -target 8 -nowarn \
-  -bootclasspath "$AJ" -classpath "$AJ" \
+  -bootclasspath "$AJ" -classpath "$AJ:$KT_CP" \
   -d "$OUT/classes" \
   $(find "$HERE/src" -name '*.java') \
   $(find "$OUT/gen" -name '*.java')
 
+# ------------------------------------------------------------------- C++ ---
+NDK="${ANDROID_NDK_ROOT:-$SDK/ndk/25.2.9519653}"
+if [ -d "$NDK" ]; then
+  echo "→ compiling native library"
+  TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
+  for ABI in arm64-v8a armeabi-v7a x86_64; do
+    case "$ABI" in
+      arm64-v8a)   TARGET=aarch64-linux-android23 ;;
+      armeabi-v7a) TARGET=armv7a-linux-androideabi23 ;;
+      x86_64)      TARGET=x86_64-linux-android23 ;;
+    esac
+    mkdir -p "$OUT/lib/$ABI"
+    "$TOOLCHAIN/${TARGET}-clang++" -shared -fPIC -O2 -std=c++17 \
+      -o "$OUT/lib/$ABI/libturbulence.so" \
+      "$HERE/src/main/cpp/turbulence.cpp" || echo "!! $ABI failed"
+  done
+  ls -lh "$OUT/lib"/*/libturbulence.so 2>/dev/null | wc -l
+else
+  echo "!! NDK not found at $NDK — building without the native library"
+fi
+
 echo "→ dexing"
 # -J passes JVM flags through the d8 wrapper; the default 2 GB heap does not
 # fit in small CI containers (and is pointless for one class)
+D8_INPUTS="$(find "$OUT/classes" -name '*.class')"
+[ -d "$OUT/ktclasses" ] && D8_INPUTS="$D8_INPUTS $(find "$OUT/ktclasses" -name '*.class')"
+[ -n "${KOTLIN_STDLIB:-}" ] && [ -f "$KOTLIN_STDLIB" ] && D8_INPUTS="$D8_INPUTS $KOTLIN_STDLIB"
+
 "$BT/d8" -JXmx600m -JXX:CompressedClassSpaceSize=64m --lib "$AJ" --min-api 23 --release \
-  --output "$OUT/dex" \
-  $(find "$OUT/classes" -name '*.class')
+  --output "$OUT/dex" $D8_INPUTS
 
 echo "→ packaging"
 cp "$OUT/dex/classes.dex" "$OUT/classes.dex"
 ( cd "$OUT" && zip -q -X base.apk classes.dex )
+# native libraries go in uncompressed so the loader can map them directly
+if [ -d "$OUT/lib" ]; then
+  ( cd "$OUT" && zip -q -X -0 base.apk $(find lib -name '*.so') )
+fi
 "$BT/zipalign" -f -p 4 "$OUT/base.apk" "$OUT/unaligned.apk"
 
 echo "→ signing"

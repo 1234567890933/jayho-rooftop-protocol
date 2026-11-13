@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       profile:
-        description: "Asset profile: standard (~155 MB) or max (~400 MB)"
+        description: "Asset profile: standard (~155 MB) or max (~700 MB)"
         required: false
         default: max
 
@@ -20,7 +20,7 @@ permissions:
 jobs:
   apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
 

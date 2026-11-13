@@ -36,6 +36,11 @@
       white: U.makeGlowSprite(64, '234,242,255'),
       mint: U.makeGlowSprite(64, '80,240,190')
     };
+    /* Wind field: a coarse grid baked once (on Android by the C++ noise
+       function) and bilinearly sampled per particle. No trig in the loop. */
+    this.field = null;
+    this.fieldN = 0;
+
     this.rings = {
       gold: U.makeRingSprite(128, '255,201,107'),
       cyan: U.makeRingSprite(128, '34,225,255'),
@@ -157,6 +162,30 @@
   };
 
   /* ---------------------------------------------------------------- update */
+  /* Install a field: Float32Array of n*n*2 (vx, vy in -1..1) */
+  Particles.prototype.setField = function (arr, n) {
+    this.field = arr;
+    this.fieldN = n;
+  };
+
+  /* Bilinear sample, clamped at the edges */
+  Particles.prototype._wind = function (x, y, out) {
+    var n = this.fieldN, f = this.field;
+    var gx = (x / 1080) * (n - 1);
+    var gy = (y / 1920) * (n - 1);
+    var x0 = gx | 0, y0 = gy | 0;
+    var fx = gx - x0, fy = gy - y0;
+    var x1 = x0 + 1 < n ? x0 + 1 : x0;
+    var y1 = y0 + 1 < n ? y0 + 1 : y0;
+    var i00 = (y0 * n + x0) * 2, i10 = (y0 * n + x1) * 2;
+    var i01 = (y1 * n + x0) * 2, i11 = (y1 * n + x1) * 2;
+    out[0] = (f[i00] * (1 - fx) + f[i10] * fx) * (1 - fy) + (f[i01] * (1 - fx) + f[i11] * fx) * fy;
+    out[1] = (f[i00 + 1] * (1 - fx) + f[i10 + 1] * fx) * (1 - fy) + (f[i01 + 1] * (1 - fx) + f[i11 + 1] * fx) * fy;
+    return out;
+  };
+
+  var _windOut = [0, 0];
+
   Particles.prototype.update = function (dt, w, h) {
     var pool = this.pool;
     for (var i = 0; i < this.cap; i++) {
@@ -165,6 +194,14 @@
 
       p.px = p.x; p.py = p.y;
       p.vy += p.grav * dt;
+
+      /* light particles ride the field; heavy sparks ignore it */
+      if (this.field && p.kind !== 3) {
+        this._wind(p.x, p.y, _windOut);
+        var strength = p.kind === 2 ? 26 : 14;
+        p.vx += _windOut[0] * strength * dt;
+        p.vy += _windOut[1] * strength * dt;
+      }
       p.vx *= Math.pow(p.drag, dt * 60);
       p.vy *= Math.pow(p.drag, dt * 60);
       p.x += p.vx * dt;

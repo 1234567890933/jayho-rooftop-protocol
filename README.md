@@ -33,6 +33,23 @@ Motion needs **HTTPS**, a **user gesture** (iOS 13+ asks explicitly) and a devic
 
 ---
 
+## 1a. Three languages, on purpose
+
+The app is not one language pretending to be three — each layer does what only
+it can do well:
+
+| Layer | File | What it actually does |
+| --- | --- | --- |
+| **C++** | `android/src/main/cpp/turbulence.cpp` | A value-noise wind field compiled to arm64 / armv7 / x86_64. It replaces ~290k trig calls per second with hash-and-lerp, and the JS samples a 32×32 grid once per frame. Also a deterministic scene seed and a version probe. |
+| **Kotlin** | `android/src/main/kotlin/com/jayho/rooftop/NativeBridge.kt` | The `window.AndroidBridge` object: amplitude-controlled vibration (`VibrationEffect`), the JNI calls into the noise field, `SharedPreferences` that survive a cache clear, and a device profile (cores / memory / model) the renderer uses to pick an honest starting quality tier. |
+| **Java** | `android/src/in/jayho/rooftop/MainActivity.java` | The WebView shell: serves the game from `https://appassets.androidplatform.net` by intercepting requests, keeps the screen awake, goes immersive, and hands the lifecycle to the game. |
+| **JavaScript** | `js/` | The game itself — five acts, the gyro aim engine, the renderer, the score. |
+
+The build compiles all of it without Gradle: `aapt2 → kotlinc → javac → NDK
+clang → d8 → zipalign → apksigner`.
+
+---
+
 ## 1b. The aim engine (gyro)
 
 The phone is the controller. `js/gyro.js` is a small aim engine, and it is the
