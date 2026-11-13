@@ -41,8 +41,8 @@
     var boxTilt = o.boxTilt || 0;
     var rim = o.rim || '255,201,107';
 
-    var hipY = y - 150 * s - jump;
-    var headY = hipY - 118 * s;
+    var hipY = y - 128 * s - jump;
+    var headY = hipY - 104 * s;
 
     shadow(g, x, y + 6, 74 * s, 0.45 * (1 - Math.min(1, jump / 420)));
 
@@ -53,15 +53,15 @@
     var stride = Math.sin(phase) * 0.85;
     var stride2 = Math.sin(phase + Math.PI) * 0.85;
     g.strokeStyle = '#05070C';
-    g.lineWidth = 22 * s;
+    g.lineWidth = 27 * s;
     g.lineCap = 'round';
 
     [[stride, 1], [stride2, 0.85]].forEach(function (pair) {
       var sw = pair[0], a = pair[1];
-      var kneeX = sw * 46 * s;
-      var kneeY = hipY + 78 * s;
-      var footX = sw * 92 * s;
-      var footY = y - Math.max(0, Math.sin(phase + (pair[1] === 1 ? 0 : Math.PI))) * 46 * s - jump;
+      var kneeX = sw * 40 * s;
+      var kneeY = hipY + 66 * s;
+      var footX = sw * 74 * s;
+      var footY = y - Math.max(0, Math.sin(phase + (pair[1] === 1 ? 0 : Math.PI))) * 34 * s - jump;
       g.globalAlpha = a;
       g.beginPath();
       g.moveTo(0, hipY);
@@ -72,18 +72,21 @@
 
     /* --- torso ----------------------------------------------------------- */
     g.fillStyle = '#05070C';
-    U.roundRect(g, -46 * s, hipY - 108 * s, 92 * s, 122 * s, 30 * s);
+    U.roundRect(g, -44 * s, hipY - 96 * s, 88 * s, 112 * s, 26 * s);
     g.fill();
 
     /* --- head ------------------------------------------------------------ */
     g.beginPath();
-    g.arc(6 * s, headY, 34 * s, 0, Math.PI * 2);
+    g.arc(6 * s, headY, 30 * s, 0, Math.PI * 2);
     g.fill();
     g.strokeStyle = 'rgba(' + rim + ',.7)';
     g.lineWidth = 2.5 * s;
     g.beginPath();
-    g.arc(6 * s, headY, 34 * s, -0.9, 0.5);
+    g.arc(6 * s, headY, 30 * s, -0.9, 0.5);
     g.stroke();
+    /* neck, so the head is not floating on the shoulders */
+    g.fillStyle = '#05070C';
+    g.fillRect(-8 * s, headY + 22 * s, 22 * s, 26 * s);
     /* shoulder line */
     g.strokeStyle = 'rgba(' + rim + ',.35)';
     g.beginPath();
@@ -95,16 +98,16 @@
     g.strokeStyle = '#05070C';
     g.lineWidth = 18 * s;
     g.beginPath();
-    g.moveTo(-30 * s, hipY - 92 * s);
-    g.lineTo(-52 * s, hipY - 176 * s);
-    g.moveTo(34 * s, hipY - 92 * s);
-    g.lineTo(52 * s, hipY - 176 * s);
+    g.moveTo(-28 * s, hipY - 84 * s);
+    g.lineTo(-48 * s, hipY - 158 * s);
+    g.moveTo(32 * s, hipY - 84 * s);
+    g.lineTo(48 * s, hipY - 158 * s);
     g.stroke();
 
     /* --- the box --------------------------------------------------------- */
-    var bw = 178 * s, bh = 118 * s;
+    var bw = 160 * s, bh = 104 * s;
     var bx = -bw / 2 + 4 * s;
-    var by = hipY - 176 * s - bh;
+    var by = hipY - 158 * s - bh;
 
     g.save();
     g.translate(0, by + bh / 2);

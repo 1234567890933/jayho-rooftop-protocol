@@ -113,15 +113,14 @@ def fg(scene):
     ink = (4, 5, 9, 255)
 
     if scene in ("lane", "stairs"):
-        # a dark pillar/lamp on the left edge and cables across the top
-        d.rectangle([-30, 0, int(W * 0.055), H], fill=ink)
-        d.rectangle([int(W * 0.055) - 8, 0, int(W * 0.055), H], fill=(10, 10, 14, 255))
+        # Foreground is a *frame*, not an object: a soft floor shadow and a few
+        # cables. A full-height pillar here read as a black bar sliding across
+        # the middle of the screen, which looked like a rendering bug.
         for i in range(3):
-            y = int(H * (0.10 + i * 0.05))
-            d.line([(-40, y), (W + 40, y + int(rng.integers(-60, 60)))], fill=(6, 6, 10, 255),
-                   width=int(rng.integers(4, 9)))
-        # bottom shadow band
-        d.rectangle([0, int(H * 0.93), W, H], fill=(3, 4, 7, 235))
+            y = int(H * (0.08 + i * 0.045))
+            d.line([(-40, y), (W + 40, y + int(rng.integers(-50, 50)))], fill=(6, 6, 10, 255),
+                   width=int(rng.integers(3, 6)))
+        d.rectangle([0, int(H * 0.945), W, H], fill=(3, 4, 7, 210))
 
     if scene in ("dusk", "night"):
         # parapet plants + a cable + a bucket, hugging the bottom corners
