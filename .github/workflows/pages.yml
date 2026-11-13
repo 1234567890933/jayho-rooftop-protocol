@@ -35,7 +35,7 @@ jobs:
       - name: Python imaging deps
         run: pip install --quiet numpy pillow
 
-      - name: Bake assets (standard profile: fast first load on mobile data)
+      - name: "Bake assets (standard profile, fast first load on mobile data)"
         run: |
           set -euo pipefail
           chmod +x tools/make_assets.sh
