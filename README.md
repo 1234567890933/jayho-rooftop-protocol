@@ -4,7 +4,9 @@ A five-act, motion-controlled birthday **game** — not a video. It has no fixed
 
 Everything in it is a rule you can win or lose.
 
-**Payload: ~154 MB** — 92 MB of painted plates, 62 MB of score and ambience. There is also a ready-built **APK** for Android, and a GitHub workflow that rebuilds it.
+**Payload: ~155 MB standard, ~400 MB max.** The max profile bakes the plates at
+2731 px and the music at 2.4× length. The APK is built by GitHub Actions and
+published as a Release, so the download is a single permanent URL.
 
 ---
 
@@ -31,7 +33,33 @@ Motion needs **HTTPS**, a **user gesture** (iOS 13+ asks explicitly) and a devic
 
 ---
 
-## 1b. The Android APK
+## 1b. The aim engine (gyro)
+
+The phone is the controller. `js/gyro.js` is a small aim engine, and it is the
+difference between "a web page that reads the accelerometer" and controls that
+feel like a mobile shooter:
+
+- **Calibration.** Whatever angle you hold the phone at when an act starts
+  becomes the centre of the world. Recalibrate any time from **Controls**.
+- **Dead zone.** 3° of hand tremor is ignored, then the response is rescaled past
+  the edge so there is no jump at the boundary.
+- **Critically damped spring.** Each axis runs through a spring with
+  `k = c²/4`, so it settles without overshoot and never oscillates. Raw sensor
+  noise at 60 Hz becomes smooth motion.
+- **Response curve.** 1.35 power: fine control near the centre for aiming, fast
+  at the edges for big turns.
+- **Hard clamp.** A dropped phone cannot spin the camera.
+- **Parallax look.** The camera offset is applied per layer, with nearer layers
+  sliding further than far ones — the street gains real depth when you tilt.
+- **Settings** — sensitivity 0.2×–3×, invert-Y, haptics, recalibrate — persisted
+  in `localStorage`.
+
+Act II's balance input runs through the same dead zone and smoothing, which is
+why the box no longer shivers when your hand is still.
+
+---
+
+## 1c. The Android APK
 
 `RooftopProtocol.apk` (154 MB) is included. It is a WebView shell around the
 exact same web build — no second codebase, no drift between the two formats.

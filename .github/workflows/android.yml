@@ -2,7 +2,7 @@ name: Build Rooftop Protocol APK
 
 # Bakes the assets from the generators, compiles the APK with the Android
 # build-tools (no Gradle), signs it, and publishes it as a GitHub Release so
-# there is a single permanent download URL.
+# there is one permanent download URL.
 
 on:
   push:
@@ -20,6 +20,7 @@ permissions:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -37,24 +38,34 @@ jobs:
       - name: Python imaging deps
         run: pip install --quiet numpy pillow
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install platform + build tools
+      # Install the SDK by hand: the marketplace action kept failing on the
+      # runner image, and these are the exact steps that build locally.
+      - name: Install Android SDK
         run: |
-          sdkmanager --install "platforms;android-34" "build-tools;34.0.0" "platform-tools"
-          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          set -euo pipefail
+          SDK="$HOME/android-sdk"
+          mkdir -p "$SDK/cmdline-tools"
+          curl -sL -o /tmp/cmdline.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q /tmp/cmdline.zip -d "$SDK/cmdline-tools"
+          mv "$SDK/cmdline-tools/cmdline-tools" "$SDK/cmdline-tools/latest"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" --licenses > /dev/null 2>&1 || true
+          "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" \
+            "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          ls "$SDK/platforms/android-34/android.jar"
+          ls "$SDK/build-tools/34.0.0/aapt2"
 
       - name: Bake assets
         run: |
+          set -euo pipefail
           chmod +x tools/make_assets.sh android/tools/build_apk.sh
           tools/make_assets.sh "${{ github.event.inputs.profile || 'max' }}"
 
       - name: Build and sign the APK
-        run: android/tools/build_apk.sh
-
-      - name: Name the artifact
         run: |
+          set -euo pipefail
+          android/tools/build_apk.sh
           mkdir -p dist
           cp android/build/RooftopProtocol.apk "dist/RooftopProtocol-${GITHUB_SHA::7}.apk"
           ls -lh dist
@@ -69,9 +80,10 @@ jobs:
       - name: Publish a release with a permanent download URL
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.1.${{ github.run_number }}
-          name: Rooftop Protocol 1.1.${{ github.run_number }}
+          tag_name: v1.2.${{ github.run_number }}
+          name: Rooftop Protocol 1.2.${{ github.run_number }}
           body: |
-            Motion-controlled five-act birthday game for Jayho.
+            Gyro aim engine, stability pass, max asset profile.
+
             Install: copy the APK to the phone, tap it, allow install from this source.
           files: dist/*.apk
