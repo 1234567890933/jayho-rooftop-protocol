@@ -85,6 +85,23 @@ public class MainActivity extends Activity {
 
         web.setWebViewClient(new WebViewClient() {
             @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) {
+                /* A blank system error page is the worst possible failure mode:
+                   it tells the player nothing and looks like a broken app. */
+                if (request != null && request.isForMainFrame()) {
+                    String msg = error != null ? String.valueOf(error.getDescription()) : "unknown";
+                    android.util.Log.e("RooftopProtocol", "main frame failed: " + msg);
+                    view.loadData(
+                            "<html><body style=\"background:#05070C;color:#EAF2FF;font:16px system-ui;"
+                                    + "display:flex;align-items:center;justify-content:center;height:100vh;"
+                                    + "margin:0;text-align:center;padding:24px\">"
+                                    + "<div><p style=\"font-size:20px;margin-bottom:12px\">The game files could not be read.</p>"
+                                    + "<p style=\"color:#6C7C93;font-size:13px\">" + msg + "</p></div></body></html>",
+                            "text/html", "UTF-8");
+                }
+            }
+
+            @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 Uri u = request.getUrl();
                 if (u == null) return null;
@@ -95,13 +112,29 @@ public class MainActivity extends Activity {
                 String path = u.getPath();
                 if (path == null || !path.startsWith("/assets/")) return null;
 
-                String assetPath = path.substring(1); // drop the leading slash
-                try {
-                    InputStream in = getAssets().open(assetPath);
-                    return new WebResourceResponse(mimeOf(assetPath), null, 200, "OK", headers(assetPath), in);
-                } catch (IOException e) {
-                    return null;
+                /* The URL is  /assets/www/index.html
+                   The APK stores assets/www/index.html, i.e. inside the app the
+                   asset is simply "www/index.html". Stripping only the leading
+                   slash produced "assets/www/index.html" and every request
+                   failed with ERR_FILE_NOT_FOUND. Try the correct mapping first,
+                   then the raw one as a safety net. */
+                String[] candidates = new String[] {
+                        path.substring("/assets/".length()),
+                        path.substring(1)
+                };
+
+                for (String assetPath : candidates) {
+                    try {
+                        InputStream in = getAssets().open(assetPath);
+                        return new WebResourceResponse(mimeOf(assetPath), null, 200, "OK",
+                                headers(assetPath), in);
+                    } catch (IOException ignored) {
+                        /* try the next candidate */
+                    }
                 }
+
+                android.util.Log.w("RooftopProtocol", "asset not found for " + path);
+                return null;
             }
         });
 
