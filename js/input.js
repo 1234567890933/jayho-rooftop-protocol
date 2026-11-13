@@ -32,6 +32,7 @@
 
     /* motion state */
     this.mode = 'touch';
+    this.onOrientation = null;   /* set by main.js → gyro.feed */
     this.motionGranted = false;
     this.motionSeen = false;
     this.raw = { a: { x: 0, y: 0, z: 0 }, g: 0, b: 0, gamma: 0, beta: 0 };
@@ -205,6 +206,11 @@
          box in Act II shivers on its own and the input reads as lag. */
       self.tilt.x = self._shapeTilt(e.gamma / 34);
       self.tilt.y = self._shapeTilt(((e.beta || 45) - 45) / 34);
+
+      /* hand the raw pair to whoever is listening (the aim engine). This is
+         per SENSOR SAMPLE, not per frame — calibration must not depend on how
+         fast the device happens to be rendering. */
+      if (self.onOrientation) self.onOrientation(e.gamma, e.beta);
     }, { passive: true });
   };
 

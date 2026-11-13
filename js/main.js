@@ -115,6 +115,12 @@
     this.bindResize();
     this.bindPlatform();
     this.bindSettings();
+
+    /* wire the sensor stream into the aim engine once */
+    var self = this;
+    this.input.onOrientation = function (gamma, beta) {
+      if (self.gyro.enabled) self.gyro.feed(gamma, beta);
+    };
   }
 
   /* -------------------------------------------------------------- haptics */
@@ -565,11 +571,8 @@
 
     this.input.update(dt);
 
-    /* the aim engine runs off the same orientation stream as the acts, so
-       looking around and tilting to balance never disagree */
-    if (this.input.mode === 'motion') {
-      this.gyro.feed(this.input.raw.gamma, this.input.raw.beta);
-    }
+    /* the aim engine is fed straight from the sensor stream (see Input), and
+       only its spring is integrated here — so a slow frame never slows aim */
     this.gyro.update(dt);
     this.world.look = this.gyro.look();
 
