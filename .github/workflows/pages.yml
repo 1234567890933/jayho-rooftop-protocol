@@ -1,0 +1,71 @@
+name: Publish the web build to GitHub Pages
+
+# Bakes the assets, then deploys the game as a normal website so it can be
+# opened by pasting one URL into any browser — no app, no login, no install.
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Python imaging deps
+        run: pip install --quiet numpy pillow
+
+      - name: Bake assets (standard profile: fast first load on mobile data)
+        run: |
+          set -euo pipefail
+          chmod +x tools/make_assets.sh
+          tools/make_assets.sh standard
+          du -sh assets/art assets/audio
+
+      - name: Assemble the site
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp -r index.html css js assets _site/
+          # a tiny landing file so the root URL always resolves
+          cat > _site/404.html <<'HTML'
+          <!doctype html><meta charset="utf-8">
+          <meta http-equiv="refresh" content="0; url=./index.html">
+          <title>Rooftop Protocol</title>
+          HTML
+          find _site -maxdepth 2 -type d | sort
+          du -sh _site
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v4
+        with:
+          enablement: true
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '_site'
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
