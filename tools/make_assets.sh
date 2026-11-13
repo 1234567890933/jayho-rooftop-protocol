@@ -23,6 +23,10 @@ else
 fi
 
 cd "$HERE"
+
+# a fresh clone has no assets/ at all — git does not store empty directories
+mkdir -p ../assets/art ../assets/audio
+
 python3 gen_scenes.py textures
 for s in lane stairs dusk night sky; do python3 gen_scenes.py "$s"; done
 python3 gen_extras.py all
